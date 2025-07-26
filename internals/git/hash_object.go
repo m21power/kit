@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -43,7 +42,7 @@ func HashBlob(filePath string) (string, error) {
 }
 
 func HashTree(dirPath string) (string, error) {
-	entries, err := ioutil.ReadDir(dirPath)
+	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return "", err
 	}

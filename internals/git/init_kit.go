@@ -12,6 +12,7 @@ func InitKit() error {
 	// Sub folder
 	objectDir := filepath.Join(rootDir, "objects")
 	refsHeadsDir := filepath.Join(rootDir, "refs", "heads")
+	mainFile := filepath.Join(refsHeadsDir, "main")
 
 	// Files
 	headFile := filepath.Join(rootDir, "HEAD")
@@ -41,6 +42,10 @@ func InitKit() error {
 
 	// Create empty INDEX file
 	_, err = os.Create(indexFile)
+	if err != nil {
+		return err
+	}
+	_, err = os.Create(mainFile)
 	if err != nil {
 		return err
 	}
