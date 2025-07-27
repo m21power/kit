@@ -10,14 +10,14 @@ import (
 	"path/filepath"
 )
 
-func WriteBlobObject(filePath string) (string, error) {
+func WriteObject(filePath, fileType string) (string, error) {
 	log.Println("Writing blob object for", filePath)
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read file: %w", err)
 	}
 
-	header := fmt.Sprintf("blob %d\x00", len(content))
+	header := fmt.Sprintf("%s %d\x00", fileType, len(content))
 	blob := append([]byte(header), content...)
 
 	hash := sha1.Sum(blob)
