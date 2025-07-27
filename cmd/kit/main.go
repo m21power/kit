@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	git "kit/internals/git"
+	"kit/internals/utils"
 	"os"
 )
 
@@ -13,7 +14,11 @@ func main() {
 	}
 
 	cmd := os.Args[1]
-
+	err := utils.CheckKit()
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
 	switch cmd {
 	case "init":
 		err := git.InitKit()
