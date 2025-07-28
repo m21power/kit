@@ -14,10 +14,12 @@ func main() {
 	}
 
 	cmd := os.Args[1]
-	err := utils.CheckKit()
-	if err != nil {
-		fmt.Println("Error:", err)
-		os.Exit(1)
+	if cmd != "init" {
+		err := utils.CheckKit()
+		if err != nil {
+			fmt.Println("Error:", err)
+			os.Exit(1)
+		}
 	}
 	switch cmd {
 	case "init":
@@ -66,6 +68,44 @@ func main() {
 				fmt.Println()
 			}
 
+		}
+
+	case "status":
+		branch, err := utils.GetHead()
+		if err != nil {
+			fmt.Println("Error getting head: ", err)
+		}
+		treeComm, err := utils.GetCommitTreeHash(branch)
+		if err != nil {
+			fmt.Println("Error getting tree hash: ", err)
+		}
+		result, err := git.StatusKit(treeComm[:2], "")
+		if err != nil {
+			fmt.Println("Error showing content:", err)
+		} else {
+
+			res, err := git.IsChanged(result, ".")
+			if err != nil {
+				fmt.Println("Error checking changes:", err)
+			} else {
+				for path, status := range res {
+					var colorCode string
+					if status.Staged {
+						colorCode = "\033[1;32m" // green
+					} else {
+						colorCode = "\033[1;31m" // red
+					}
+
+					// Print message in color
+					fmt.Printf("%s %s%s\033[0m\n", path, colorCode, status.Message)
+
+					// Optional staged tag
+					if status.Staged {
+						fmt.Println("  \033[1;34m(staged)\033[0m") // blue bold for staged
+					}
+				}
+
+			}
 		}
 	default:
 		fmt.Println("Unknown command:", cmd)

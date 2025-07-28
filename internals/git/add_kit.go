@@ -41,7 +41,7 @@ func handleFileSaving(path string) error {
 	}
 
 	// Write the blob object
-	_, err = util.WriteObject(path, "blob")
+	_, err = util.WriteObject(path, "blob", hash)
 	if err != nil {
 		return fmt.Errorf("failed to write blob object for %s: %w", path, err)
 	}

@@ -33,7 +33,7 @@ func InitKit() error {
 	}
 
 	//Create HEAD file
-	headContent := []byte("ref: refs/heads/main\n")
+	headContent := []byte("ref: refs/heads/main")
 	err = os.WriteFile(headFile, headContent, 0644)
 	if err != nil {
 		return err

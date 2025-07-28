@@ -3,51 +3,54 @@ package utils
 import (
 	"bytes"
 	"compress/zlib"
-	"crypto/sha1"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 )
 
-func WriteObject(filePath, fileType string) (string, error) {
-	log.Println("Writing blob object for", filePath)
-	content, err := os.ReadFile(filePath)
-	if err != nil {
-		return "", fmt.Errorf("failed to read file: %w", err)
-	}
-
-	header := fmt.Sprintf("%s %d\x00", fileType, len(content))
-	blob := append([]byte(header), content...)
-
-	hash := sha1.Sum(blob)
-	hashStr := fmt.Sprintf("%x", hash[:])
-
+func WriteObject(filePath, fileType, hashStr string) (string, error) {
 	objectDir := filepath.Join(".kit", "objects", hashStr[:2])
 	objectPath := filepath.Join(objectDir, hashStr[2:])
 
-	// If object already exists, skip writing
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", fmt.Errorf("read error: %w", err)
+	}
+
 	if _, err := os.Stat(objectPath); err == nil {
 		return hashStr, nil
 	}
 
-	err = os.MkdirAll(objectDir, 0755)
+	header := fmt.Sprintf("%s %d\x00", fileType, len(content))
+	full := append([]byte(header), content...)
+
+	err = WriteZlibCompressedObject(hashStr, full)
 	if err != nil {
-		return "", fmt.Errorf("failed to create object dir: %w", err)
+		return "", err
+	}
+
+	return hashStr, nil
+}
+
+func WriteZlibCompressedObject(hash string, content []byte) error {
+	dir := filepath.Join(".kit", "objects", hash[:2])
+	file := filepath.Join(dir, hash[2:])
+
+	if _, err := os.Stat(file); err == nil {
+		return nil // already exists
+	}
+
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("mkdir error: %w", err)
 	}
 
 	var buf bytes.Buffer
 	w := zlib.NewWriter(&buf)
-	_, err = w.Write(blob)
+	_, err := w.Write(content)
 	if err != nil {
-		return "", fmt.Errorf("compression write error: %w", err)
+		return fmt.Errorf("zlib compress error: %w", err)
 	}
 	w.Close()
 
-	err = os.WriteFile(objectPath, buf.Bytes(), 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write object: %w", err)
-	}
-
-	return hashStr, nil
+	return os.WriteFile(file, buf.Bytes(), 0644)
 }

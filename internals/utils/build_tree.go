@@ -5,8 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"kit/pkg"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -42,7 +40,7 @@ func WriteTree(root *pkg.TreeNode) (string, error) {
 
 	for name, blob := range root.Blobs {
 		entries = append(entries, pkg.TreeEntry{
-			Mode: blob.Mode,
+			Mode: "100644",
 			Type: "blob",
 			Name: name,
 			Hash: blob.Hash,
@@ -83,34 +81,10 @@ func WriteTree(root *pkg.TreeNode) (string, error) {
 	hash := sha1.Sum(full)
 	hashHex := hex.EncodeToString(hash[:])
 
-	err := WriteTreeObject(hashHex, full)
+	err := WriteZlibCompressedObject(hashHex, full)
 	if err != nil {
 		return "", err
 	}
 
 	return hashHex, nil
-}
-func WriteTreeObject(hash string, content []byte) error {
-	if len(hash) < 2 {
-		return fmt.Errorf("invalid hash: %s", hash)
-	}
-
-	dir := filepath.Join(".kit", "objects", hash[:2])
-	file := filepath.Join(dir, hash[2:])
-
-	err := os.MkdirAll(dir, 0755)
-	if err != nil {
-		return fmt.Errorf("failed to create object dir: %w", err)
-	}
-
-	if _, err := os.Stat(file); err == nil {
-		return nil
-	}
-
-	err = os.WriteFile(file, content, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to write object: %w", err)
-	}
-
-	return nil
 }

@@ -32,3 +32,9 @@ type CommitObject struct {
 	Date    time.Time
 	Parent  string
 }
+
+type Status struct {
+	Staged  bool
+	Message string
+	Hash    string
+}
