@@ -59,6 +59,11 @@ func main() {
 		if err != nil {
 			fmt.Println("Error fetching logs:", err)
 		} else {
+			heaad, err := utils.GetHead()
+			if err != nil {
+				fmt.Println("Error getting head:", err)
+			}
+			fmt.Printf("\033[1;34mHEAD -> %s\033[0m\n", heaad) // blue bold
 			for _, log := range logs {
 				fmt.Printf("\033[1;33mcommit\033[0m %s\n", log.Hash)                                          // yellow bold
 				fmt.Printf("\033[1;32mAuthor:\033[0m %s <%s>\n", log.Author, log.Email)                       // green bold
@@ -79,7 +84,7 @@ func main() {
 		if err != nil {
 			fmt.Println("Error getting tree hash: ", err)
 		}
-		result, err := git.StatusKit(treeComm[:2], "")
+		result, err := git.StatusKit(treeComm, "", make(map[string]bool))
 		if err != nil {
 			fmt.Println("Error showing content:", err)
 		} else {
@@ -88,24 +93,59 @@ func main() {
 			if err != nil {
 				fmt.Println("Error checking changes:", err)
 			} else {
+				var stagedFiles []string
+				var unstagedFiles []string
+
 				for path, status := range res {
-					var colorCode string
 					if status.Staged {
-						colorCode = "\033[1;32m" // green
+						stagedFiles = append(stagedFiles, path)
 					} else {
-						colorCode = "\033[1;31m" // red
+						unstagedFiles = append(unstagedFiles, path)
 					}
+				}
 
-					// Print message in color
-					fmt.Printf("%s %s%s\033[0m\n", path, colorCode, status.Message)
+				// Print staged files
+				if len(stagedFiles) > 0 {
+					fmt.Println("\033[1;36m Files ready to commit:\033[0m")
+					for _, file := range stagedFiles {
+						fmt.Printf("  \033[1;32m- %s\033[0m\n", file)
+					}
+				}
 
-					// Optional staged tag
-					if status.Staged {
-						fmt.Println("  \033[1;34m(staged)\033[0m") // blue bold for staged
+				// Print unstaged files
+				if len(unstagedFiles) > 0 {
+					fmt.Println("\n\033[1;33m Not tracked yet. Run: kit add .\033[0m")
+					for _, file := range unstagedFiles {
+						fmt.Printf("  \033[1;31m- %s\033[0m\n", file)
 					}
 				}
 
 			}
+		}
+	case "branch":
+		if len(os.Args) < 3 {
+			branch, err := utils.GetHead()
+			if err != nil {
+				fmt.Println("Error getting current branch:", err)
+				os.Exit(1)
+			}
+			fmt.Println("Current branch:", branch)
+			os.Exit(0)
+		}
+		name := os.Args[2]
+		err := git.CreateBranch(name)
+		if err != nil {
+			fmt.Println("Error creating branch:", err)
+		}
+	case "checkout":
+		if len(os.Args) < 3 {
+			fmt.Println("Usage: kit checkout <branch_name>")
+			os.Exit(1)
+		}
+		name := os.Args[2]
+		err := git.CheckoutBranch(name)
+		if err != nil {
+			fmt.Println("Error checking out branch:", err)
 		}
 	default:
 		fmt.Println("Unknown command:", cmd)
