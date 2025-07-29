@@ -66,6 +66,7 @@ func GetCommitTreeHash(branch string) (string, error) {
 	return "", fmt.Errorf("tree hash not found in commit object")
 }
 func GetLastCommitHash(branch string) (string, error) {
+	fmt.Println("Getting last commit hash for branch:", branch)
 	commitPath := fmt.Sprintf(".kit/refs/heads/%s", branch)
 	content, err := os.ReadFile(commitPath)
 	if errors.Is(err, os.ErrNotExist) {

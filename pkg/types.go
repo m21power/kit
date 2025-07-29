@@ -38,3 +38,10 @@ type Status struct {
 	Message string
 	Hash    string
 }
+
+type FileNode struct {
+	Path string
+	Hash string
+	Mode string
+	Type string
+}

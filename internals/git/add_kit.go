@@ -36,7 +36,6 @@ func handleFileSaving(path string) error {
 
 	// Skip if already in index with same hash
 	if existingHash, ok := indexMap[path]; ok && existingHash == hash {
-		fmt.Println("File unchanged and already staged:", path)
 		return nil
 	}
 
@@ -52,7 +51,6 @@ func handleFileSaving(path string) error {
 		return fmt.Errorf("failed to update index: %w", err)
 	}
 
-	fmt.Println("File staged:", path, "→", hash)
 	return nil
 }
 

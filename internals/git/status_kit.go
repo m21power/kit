@@ -14,63 +14,63 @@ import (
 	"strings"
 )
 
-func StatusKit(dir string, fullPath string) (map[string]pkg.IndexEntry, error) {
+func StatusKit(hash string, fullPath string, visited map[string]bool) (map[string]pkg.IndexEntry, error) {
+	if visited[hash] {
+		return nil, nil // Already processed
+	}
+	visited[hash] = true
 	var result = make(map[string]pkg.IndexEntry)
-	path := ".kit/objects/" + dir
+	path := ".kit/objects/" + hash[:2]
+	path = filepath.Join(path, hash[2:])
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, fmt.Errorf("directory does not exist: %s", path)
 	}
-	files, err := os.ReadDir(path)
+	content, err := os.ReadFile(path)
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to read directory: %w", err)
+		return nil, fmt.Errorf("failed to read file %s: %w", path, err)
 	}
-	for _, file := range files {
-		filePath := path + "/" + file.Name()
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read file %s: %w", filePath, err)
-		}
 
-		r, err := zlib.NewReader(bytes.NewReader(content))
-		if err != nil {
-			return nil, fmt.Errorf("failed to decompress: %w", err)
-		}
-		defer r.Close()
+	r, err := zlib.NewReader(bytes.NewReader(content))
+	if err != nil {
+		return nil, fmt.Errorf("failed to decompress: %w", err)
+	}
+	defer r.Close()
 
-		decompressed, err := io.ReadAll(r)
-		if err != nil {
-			return nil, fmt.Errorf("read decompressed error: %w", err)
-		}
+	decompressed, err := io.ReadAll(r)
+	if err != nil {
+		return nil, fmt.Errorf("read decompressed error: %w", err)
+	}
 
-		entriesData, err := StripHeader(decompressed)
-		if err != nil {
-			log.Fatal(err)
-		}
+	entriesData, err := StripHeader(decompressed)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		entries, err := ParseTreeObject(entriesData) // your parser
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse tree object: %w", err)
-		}
-		for _, entry := range entries {
+	entries, err := ParseTreeObject(entriesData) // your parser
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse tree object: %w", err)
+	}
+	for _, entry := range entries {
 
-			if entry.Type == "blob" {
-				result[fullPath+"/"+entry.Name] = pkg.IndexEntry{
-					Mode: entry.Mode,
-					Hash: entry.Hash,
-					Path: fullPath + "/" + entry.Name,
-				}
-			} else if entry.Type == "tree" {
-				subEntries, err := StatusKit(entry.Hash[:2], fullPath+"/"+entry.Name)
-				if err != nil {
-					return nil, fmt.Errorf("failed to get sub entries: %w", err)
-				}
-				for k, v := range subEntries {
-					result[k] = v
-				}
+		if entry.Type == "blob" {
+			result[fullPath+"/"+entry.Name] = pkg.IndexEntry{
+				Mode: entry.Mode,
+				Hash: entry.Hash,
+				Path: fullPath + "/" + entry.Name,
 			}
-
+		} else if entry.Type == "tree" {
+			subEntries, err := StatusKit(entry.Hash, fullPath+"/"+entry.Name, visited)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get sub entries: %w", err)
+			}
+			for k, v := range subEntries {
+				result[k] = v
+			}
 		}
+
 	}
+
 	return result, nil
 }
 func ParseTreeObject(data []byte) ([]pkg.TreeEntry, error) {
