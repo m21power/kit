@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	handler "kit/cmd/handlers"
+
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
@@ -84,6 +86,7 @@ func (r *Router) RegisterRoute() {
 	path := r.route.PathPrefix("/api/v1").Subrouter()
 	path.HandleFunc("/create", CreateNestedDirHandler).Methods("POST")
 	path.HandleFunc("/list", ListDirStructureHandler).Methods("GET")
+	path.HandleFunc("/init", handler.InitKit).Methods("POST") // Initialize kit
 }
 
 func (r *Router) Run(addr string) error {
