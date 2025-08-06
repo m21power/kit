@@ -4,10 +4,17 @@ import (
 	"fmt"
 	git "kit/internals/git"
 	"kit/internals/utils"
+	"kit/routes"
 	"os"
+
+	"github.com/gorilla/mux"
 )
 
 func main() {
+	route := mux.NewRouter()
+	r := routes.NewRouter(route)
+	r.RegisterRoute()
+	r.Run(":8080")
 	if len(os.Args) < 2 {
 		fmt.Println("Usage: kit <command> [args]")
 		os.Exit(1)
@@ -111,7 +118,6 @@ func main() {
 						fmt.Printf("  \033[1;32m- %s\033[0m\n", file)
 					}
 				}
-
 				// Print unstaged files
 				if len(unstagedFiles) > 0 {
 					fmt.Println("\n\033[1;33m Not tracked yet. Run: kit add .\033[0m")
