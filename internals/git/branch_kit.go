@@ -88,8 +88,10 @@ func CheckoutBranch(name, username string) (*pkg.FileSystemItem, error) {
 		for path := range oldFiles {
 			if _, exists := newFiles[path]; !exists {
 				err := os.Remove(path)
-				if err != nil && !os.IsNotExist(err) {
-					return nil, fmt.Errorf("failed to delete removed file %s: %w", path, err)
+				if err != nil {
+					if removeErr := os.RemoveAll(path); removeErr != nil {
+						return nil, fmt.Errorf("failed to delete removed file or directory %s: %w", path, removeErr)
+					}
 				}
 			}
 		}
