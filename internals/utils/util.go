@@ -99,3 +99,24 @@ func GetStagedMap(username string) (map[string]pkg.IndexEntry, error) {
 	}
 	return stagedMap, nil
 }
+func GetAllDir() ([]string, error) {
+	workspaceDir := "workspaces"
+	var result []string
+	if _, err := os.Stat(workspaceDir); os.IsNotExist(err) {
+		if err := os.Mkdir(workspaceDir, 0755); err != nil {
+			return nil, err
+		}
+	}
+
+	entries, err := os.ReadDir(workspaceDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read workspaces directory: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			result = append(result, entry.Name())
+		}
+	}
+	return result, nil
+}

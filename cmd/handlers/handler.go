@@ -278,3 +278,45 @@ func CheckoutBranch(w http.ResponseWriter, r *http.Request) {
 	}
 	pkg.WriteJSON(w, http.StatusOK, map[string]pkg.FileSystemItem{"data": *result})
 }
+
+func ListBranches(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		pkg.WriteError(w, fmt.Errorf("username is required"), http.StatusBadRequest)
+		return
+	}
+	branches, err := utils.ListBranches(username)
+	if err != nil {
+		pkg.WriteError(w, fmt.Errorf("failed to list branches: %w", err), http.StatusInternalServerError)
+		return
+	}
+	pkg.WriteJSON(w, http.StatusOK, map[string]any{
+		"branches": branches,
+	})
+}
+
+func GetAllDir(w http.ResponseWriter, r *http.Request) {
+
+	data, err := utils.GetAllDir()
+	if err != nil {
+		pkg.WriteError(w, fmt.Errorf("failed to get directory structure: %w", err), http.StatusInternalServerError)
+		return
+	}
+	pkg.WriteJSON(w, http.StatusOK, map[string]any{
+		"data": data,
+	})
+}
+
+func CheckDir(w http.ResponseWriter, r *http.Request) {
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		pkg.WriteError(w, fmt.Errorf("username is required"), http.StatusBadRequest)
+		return
+	}
+	workspaceDir := filepath.Join("workspaces", username)
+	if _, err := os.Stat(workspaceDir); os.IsNotExist(err) {
+		pkg.WriteJSON(w, http.StatusNotFound, map[string]string{"message": "Directory does not exist"})
+		return
+	}
+	pkg.WriteJSON(w, http.StatusBadRequest, map[string]string{"message": "Directory exists"})
+}

@@ -139,3 +139,22 @@ func WriteC(content string, objType string, username string) (string, error) {
 
 	return hashStr, nil
 }
+
+func ListBranches(username string) ([]string, error) {
+	workspaceDir := filepath.Join("workspaces", username)
+	branchesDir := filepath.Join(workspaceDir, ".kit/refs/heads")
+
+	files, err := os.ReadDir(branchesDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read branches directory: %w", err)
+	}
+
+	var branches []string
+	for _, file := range files {
+		if !file.IsDir() {
+			branches = append(branches, file.Name())
+		}
+	}
+
+	return branches, nil
+}

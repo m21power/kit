@@ -29,6 +29,9 @@ func (r *Router) RegisterRoute() {
 	path.HandleFunc("/restore", handler.RestoreHandler).Methods("POST")
 	path.HandleFunc("/branch", handler.CreateBranch).Methods("POST")
 	path.HandleFunc("/checkout", handler.CheckoutBranch).Methods("POST")
+	path.HandleFunc("/branches", handler.ListBranches).Methods("GET")
+	path.HandleFunc("/dir", handler.GetAllDir).Methods("GET")
+	path.HandleFunc("/check", handler.CheckDir).Methods("GET")
 
 }
 
