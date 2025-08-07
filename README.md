@@ -1,14 +1,21 @@
 # kit
 
-**kit** is a minimal Git implementation built from scratch in Go. It aims to help you understand the internals of Git by providing a simple, readable codebase and command-line interface.
+**kit** is a modern, minimal Git implementation built from scratch in Go. It provides a clean CLI and REST API for version control, making it a great learning resource and a foundation for custom workflows.
+
+---
 
 ## Features
 
-- Initialize a new kit repository
-- Add files to the index
-- Create and write objects
-- Compute file hashes
-- Basic index management
+- Initialize a new repository
+- Add files and folders to the index
+- Commit changes with messages
+- View commit logs
+- Check repository status
+- Restore files to previous states
+- Create and checkout branches
+- Web API for all major operations
+
+---
 
 ## Getting Started
 
@@ -31,7 +38,7 @@ Build the CLI:
 go build -o kit ./cmd/kit
 ```
 
-### Usage
+### Usage (CLI)
 
 Initialize a new repository:
 
@@ -39,24 +46,79 @@ Initialize a new repository:
 ./kit init
 ```
 
-Add a file to the index:
+Add files to the index:
 
 ```bash
 ./kit add <filename>
 ```
 
+Commit changes:
+
+```bash
+./kit commit -m "Your commit message"
+```
+
+Check status:
+
+```bash
+./kit status
+```
+
+View logs:
+
+```bash
+./kit log
+```
+
+---
+
+## REST API Endpoints
+
+All endpoints are prefixed with `/api/v1`.
+
+| Endpoint    | Method | Description           | Example Payload / Params                         |
+| ----------- | ------ | --------------------- | ------------------------------------------------ |
+| `/init`     | POST   | Initialize repository | `{ "username": "alice" }`                        |
+| `/add`      | POST   | Add files/folders     | `{ "username": "alice", "paths": ["."] }`        |
+| `/commit`   | POST   | Commit changes        | `{ "username": "alice", "message": "msg" }`      |
+| `/log`      | POST   | Get commit logs       | `{ "username": "alice", "count": 5 }`            |
+| `/status`   | POST   | Get repo status       | `{ "username": "alice" }`                        |
+| `/restore`  | POST   | Restore files         | `{ "username": "alice", "paths": ["file.txt"] }` |
+| `/branch`   | POST   | Create branch         | `{ "username": "alice", "branch": "dev" }`       |
+| `/checkout` | POST   | Checkout branch       | `{ "username": "alice", "branch": "dev" }`       |
+
+---
+
 ## Project Structure
 
 ```
-cmd/kit/         # CLI entry point
-internals/git/   # Core git logic (add, hash, init)
-internals/utils/ # Utility functions
-pkg/             # Shared packages
+cmd/kit/           # CLI entry point
+cmd/handlers/      # HTTP handlers for REST API
+internals/git/     # Core git logic (init, add, commit, log, status, restore, branch)
+internals/utils/   # Utility functions (index, tree, file ops)
+pkg/               # Shared types and helpers
+routes/            # API route registration
+workspaces/        # User repositories (created at runtime)
 ```
+
+---
+
+## Example Workflow
+
+1. **Initialize**: Create a new workspace for a user.
+2. **Add**: Stage files or folders for commit.
+3. **Commit**: Save changes with a message.
+4. **Branch**: Create and switch between branches.
+5. **Status/Log**: Inspect repository state and history.
+6. **Restore**: Revert files to previous versions.
+
+---
 
 ## Contributing
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+
+---
 
 ## License
 
