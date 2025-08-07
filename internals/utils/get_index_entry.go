@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"kit/pkg"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-func GetIndexEntry() ([]pkg.IndexEntry, error) {
-	indexPath := ".kit/INDEX"
+func GetIndexEntry(username string) ([]pkg.IndexEntry, error) {
+	workspaceDir := filepath.Join("workspaces", username)
+
+	indexPath := workspaceDir + "/.kit/INDEX"
 	indexEntry := make([]pkg.IndexEntry, 0)
 
 	file, err := os.Open(indexPath)

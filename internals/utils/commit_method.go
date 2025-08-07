@@ -12,8 +12,9 @@ import (
 	"time"
 )
 
-func GetHead() (string, error) {
-	headPath := ".kit/HEAD"
+func GetHead(username string) (string, error) {
+	workspaceDir := filepath.Join("workspaces", username)
+	headPath := filepath.Join(workspaceDir, ".kit/HEAD")
 	content, err := os.ReadFile(headPath)
 	if err != nil {
 		return "", err
@@ -28,8 +29,10 @@ func GetHead() (string, error) {
 	return temp[len(temp)-1], nil
 }
 
-func GetCommitTreeHash(branch string) (string, error) {
-	commitPath := fmt.Sprintf(".kit/refs/heads/%s", branch)
+func GetCommitTreeHash(branch, username string) (string, error) {
+	workspaceDir := filepath.Join("workspaces", username)
+	rootDir := filepath.Join(workspaceDir, ".kit/refs/heads")
+	commitPath := fmt.Sprintf("%s/%s", rootDir, branch)
 	content, err := os.ReadFile(commitPath)
 	if errors.Is(err, os.ErrNotExist) {
 		return "", nil // first commit; no parent
@@ -43,7 +46,7 @@ func GetCommitTreeHash(branch string) (string, error) {
 	}
 
 	// Read the commit object
-	objPath := filepath.Join(".kit", "objects", commitHash[:2], commitHash[2:])
+	objPath := filepath.Join(workspaceDir+"/.kit", "objects", commitHash[:2], commitHash[2:])
 	objContent, err := os.ReadFile(objPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read commit object: %w", err)
@@ -65,9 +68,11 @@ func GetCommitTreeHash(branch string) (string, error) {
 
 	return "", fmt.Errorf("tree hash not found in commit object")
 }
-func GetLastCommitHash(branch string) (string, error) {
+func GetLastCommitHash(branch, username string) (string, error) {
 	fmt.Println("Getting last commit hash for branch:", branch)
-	commitPath := fmt.Sprintf(".kit/refs/heads/%s", branch)
+	workspaceDir := filepath.Join("workspaces", username)
+
+	commitPath := fmt.Sprintf(workspaceDir+"/.kit/refs/heads/%s", branch)
 	content, err := os.ReadFile(commitPath)
 	if errors.Is(err, os.ErrNotExist) {
 		return "", nil // first commit; no parent
@@ -82,8 +87,8 @@ func GetLastCommitHash(branch string) (string, error) {
 
 	return commitHash, nil
 }
-func WriteCommit(branch, newCommit, oldCommit, message string) error {
-	author := "Unknown Author"
+func WriteCommit(branch, newCommit, oldCommit, message, username string) error {
+	author := username + " Author"
 	email := "author@gmail.com"
 
 	now := time.Now()
@@ -98,13 +103,14 @@ func WriteCommit(branch, newCommit, oldCommit, message string) error {
 	commitContent += fmt.Sprintf("committer %s <%s> %d %s\n", author, email, timestamp, timezone)
 	commitContent += "\n" + message + "\n"
 
-	commitHash, err := WriteC(commitContent, "commit")
+	commitHash, err := WriteC(commitContent, "commit", username)
 	fmt.Println("commit hash: ", commitHash)
 	if err != nil {
 		return fmt.Errorf("failed to write commit object: %w", err)
 	}
+	workspaceDir := filepath.Join("workspaces", username)
 
-	branchPath := fmt.Sprintf(".kit/refs/heads/%s", branch)
+	branchPath := fmt.Sprintf(workspaceDir+"/.kit/refs/heads/%s", branch)
 	err = os.WriteFile(branchPath, []byte(commitHash), 0644)
 	if err != nil {
 		return fmt.Errorf("failed to update branch reference: %w", err)
@@ -113,14 +119,15 @@ func WriteCommit(branch, newCommit, oldCommit, message string) error {
 	return nil
 }
 
-func WriteC(content string, objType string) (string, error) {
+func WriteC(content string, objType string, username string) (string, error) {
 	header := fmt.Sprintf("%s %d\u0000", objType, len(content))
 	full := []byte(header + content)
 
 	hash := sha1.Sum(full)
 	hashStr := hex.EncodeToString(hash[:])
+	workspaceDir := filepath.Join("workspaces", username)
 
-	dir := filepath.Join(".kit", "objects", hashStr[:2])
+	dir := filepath.Join(workspaceDir+"/.kit", "objects", hashStr[:2])
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create object dir: %w", err)
 	}

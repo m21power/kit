@@ -4,12 +4,15 @@ import (
 	"bytes"
 	"compress/zlib"
 	"fmt"
+	"kit/pkg"
 	"os"
 	"path/filepath"
 )
 
-func WriteObject(filePath, fileType, hashStr string) (string, error) {
-	objectDir := filepath.Join(".kit", "objects", hashStr[:2])
+func WriteObject(filePath, fileType, hashStr, username string) (string, error) {
+	workspaceDir := filepath.Join("workspaces", username)
+	rootDir := filepath.Join(workspaceDir, ".kit")
+	objectDir := filepath.Join(rootDir, "objects", hashStr[:2])
 	objectPath := filepath.Join(objectDir, hashStr[2:])
 
 	content, err := os.ReadFile(filePath)
@@ -24,7 +27,7 @@ func WriteObject(filePath, fileType, hashStr string) (string, error) {
 	header := fmt.Sprintf("%s %d\x00", fileType, len(content))
 	full := append([]byte(header), content...)
 
-	err = WriteZlibCompressedObject(hashStr, full)
+	err = WriteZlibCompressedObject(hashStr, username, full)
 	if err != nil {
 		return "", err
 	}
@@ -32,8 +35,11 @@ func WriteObject(filePath, fileType, hashStr string) (string, error) {
 	return hashStr, nil
 }
 
-func WriteZlibCompressedObject(hash string, content []byte) error {
-	dir := filepath.Join(".kit", "objects", hash[:2])
+func WriteZlibCompressedObject(hash, username string, content []byte) error {
+	workspaceDir := filepath.Join("workspaces", username)
+	rootDir := filepath.Join(workspaceDir, ".kit")
+
+	dir := filepath.Join(rootDir, "objects", hash[:2])
 	file := filepath.Join(dir, hash[2:])
 
 	if _, err := os.Stat(file); err == nil {
@@ -53,4 +59,36 @@ func WriteZlibCompressedObject(hash string, content []byte) error {
 	w.Close()
 
 	return os.WriteFile(file, buf.Bytes(), 0644)
+}
+
+func WriteStructure(basePath string, item pkg.FileSystemItem) error {
+	targetPath := filepath.Join(basePath, item.Path)
+
+	// If the path exists, remove it first
+	if _, err := os.Stat(targetPath); err == nil {
+		if err := os.RemoveAll(targetPath); err != nil {
+			return fmt.Errorf("failed to remove existing path %s: %w", targetPath, err)
+		}
+	}
+
+	if item.Type == "folder" {
+		if err := os.MkdirAll(targetPath, 0755); err != nil {
+			return err
+		}
+		for _, child := range item.Children {
+			if err := WriteStructure(basePath, child); err != nil {
+				return err
+			}
+		}
+	} else if item.Type == "file" {
+		// Ensure parent folder exists
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(targetPath, []byte(item.Content), 0644); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

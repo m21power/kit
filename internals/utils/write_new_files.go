@@ -11,7 +11,7 @@ import (
 	"strings"
 )
 
-func WriteNewFiles(files map[string]pkg.FileNode) error {
+func WriteNewFiles(files map[string]pkg.FileNode, username string) error {
 	for _, file := range files {
 
 		if file.Mode == "100644" { // Regular file
@@ -19,7 +19,7 @@ func WriteNewFiles(files map[string]pkg.FileNode) error {
 				return fmt.Errorf("failed to create directory for file %s: %w", file.Path, err)
 			}
 
-			content, err := ReadObject(file.Hash)
+			content, err := ReadObject(file.Hash, username)
 			if err != nil {
 				return fmt.Errorf("failed to read object for file %s: %w", file.Path, err)
 			}
@@ -32,8 +32,9 @@ func WriteNewFiles(files map[string]pkg.FileNode) error {
 	return nil
 }
 
-func ReadObject(hash string) ([]byte, error) {
-	path := ".kit/objects/" + hash[:2] + "/" + hash[2:]
+func ReadObject(hash string, username string) ([]byte, error) {
+	workspaceDir := filepath.Join("workspaces", username)
+	path := workspaceDir + "/.kit/objects/" + hash[:2] + "/" + hash[2:]
 
 	content, err := os.ReadFile(path)
 	if err != nil {

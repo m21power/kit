@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-func AddOrUpdateIndex(path, hash string) error {
-	indexMap, err := ReadIndex()
+func AddOrUpdateIndex(path, hash, username string) error {
+	indexMap, err := ReadIndex(username)
 	if err != nil {
 		return err
 	}
@@ -18,8 +18,8 @@ func AddOrUpdateIndex(path, hash string) error {
 	for p, h := range indexMap {
 		builder.WriteString(fmt.Sprintf("100644 %s %s\n", h, p))
 	}
-
-	err = os.WriteFile(".kit/INDEX", []byte(builder.String()), 0644)
+	indexPath := "workspaces/" + username + "/.kit/INDEX"
+	err = os.WriteFile(indexPath, []byte(builder.String()), 0644)
 	if err != nil {
 		return fmt.Errorf("failed to write index: %w", err)
 	}

@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-func ReadIndex() (map[string]string, error) {
-	indexPath := ".kit/INDEX"
+func ReadIndex(username string) (map[string]string, error) {
+	indexPath := fmt.Sprintf("workspaces/%s/.kit/INDEX", username)
 	indexMap := make(map[string]string)
 
 	file, err := os.Open(indexPath)

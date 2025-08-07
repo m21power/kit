@@ -45,3 +45,33 @@ type FileNode struct {
 	Mode string
 	Type string
 }
+
+type FileSystemItem struct {
+	ID       string           `json:"id"`
+	Name     string           `json:"name"`
+	Type     string           `json:"type"`
+	Content  string           `json:"content,omitempty"`
+	Children []FileSystemItem `json:"children,omitempty"`
+	Path     string           `json:"path"`
+}
+
+type AddRequest struct {
+	Username   string         `json:"username"`
+	Paths      []string       `json:"files"`
+	RootFolder FileSystemItem `json:"rootFolder"`
+}
+
+type StatusRequest struct {
+	Username   string         `json:"username"`
+	RootFolder FileSystemItem `json:"rootFolder"`
+}
+
+type RestoreRequest struct {
+	Username string   `json:"username"`
+	Paths    []string `json:"paths"`
+}
+
+type BranchRequest struct {
+	Username string `json:"username"`
+	Branch   string `json:"branch"`
+}

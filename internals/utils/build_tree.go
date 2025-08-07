@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"kit/pkg"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,7 +37,7 @@ func BuildTree(indexEntry []pkg.IndexEntry) (*pkg.TreeNode, error) {
 	return root, nil
 }
 
-func WriteTree(root *pkg.TreeNode) (string, error) {
+func WriteTree(root *pkg.TreeNode, username string) (string, error) {
 	var entries []pkg.TreeEntry
 
 	for name, blob := range root.Blobs {
@@ -48,7 +50,7 @@ func WriteTree(root *pkg.TreeNode) (string, error) {
 	}
 
 	for name, tree := range root.Trees {
-		hash, err := WriteTree(tree)
+		hash, err := WriteTree(tree, username)
 		if err != nil {
 			return "", err
 		}
@@ -81,10 +83,61 @@ func WriteTree(root *pkg.TreeNode) (string, error) {
 	hash := sha1.Sum(full)
 	hashHex := hex.EncodeToString(hash[:])
 
-	err := WriteZlibCompressedObject(hashHex, full)
+	err := WriteZlibCompressedObject(hashHex, username, full)
 	if err != nil {
 		return "", err
 	}
 
 	return hashHex, nil
+}
+
+func BuildFileTree(root string) (pkg.FileSystemItem, error) {
+	info, err := os.Stat(root)
+	if err != nil {
+		return pkg.FileSystemItem{}, err
+	}
+
+	item := pkg.FileSystemItem{
+		ID:   root, // optional
+		Name: info.Name(),
+		Path: root,
+		Type: "folder",
+	}
+
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		return item, err
+	}
+
+	for _, entry := range entries {
+		// Skip internal .kit folder
+		if entry.Name() == ".kit" {
+			continue
+		}
+
+		childPath := filepath.Join(root, entry.Name())
+
+		if entry.IsDir() {
+			child, err := BuildFileTree(childPath)
+			if err != nil {
+				return item, err
+			}
+			item.Children = append(item.Children, child)
+		} else {
+			content, err := os.ReadFile(childPath)
+			if err != nil {
+				return item, err
+			}
+			child := pkg.FileSystemItem{
+				ID:      childPath, // optional
+				Name:    entry.Name(),
+				Path:    childPath,
+				Type:    "file",
+				Content: string(content),
+			}
+			item.Children = append(item.Children, child)
+		}
+	}
+
+	return item, nil
 }

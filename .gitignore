@@ -1,3 +1,4 @@
 /cmd/kit/.kit
 /cmd/kit/testdata
 /internals/utils/see_content.go
+/cmd/kit/workspaces

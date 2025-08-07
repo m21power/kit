@@ -8,14 +8,15 @@ import (
 	"io"
 	"kit/pkg"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
-func GetFiles(hash string, prefix string) (map[string]pkg.FileNode, error) {
+func GetFiles(hash string, prefix, username string) (map[string]pkg.FileNode, error) {
 	files := make(map[string]pkg.FileNode)
 
 	// Load and decompress the object
-	data, objectType, err := loadObjectFromHash(hash)
+	data, objectType, err := loadObjectFromHash(hash, username)
 
 	if err != nil {
 		return nil, err
@@ -48,7 +49,7 @@ func GetFiles(hash string, prefix string) (map[string]pkg.FileNode, error) {
 		i = hashStart + 20
 
 		// Determine type (file/tree)
-		_, objType, err := loadObjectFromHash(hashStr)
+		_, objType, err := loadObjectFromHash(hashStr, username)
 
 		if err != nil {
 			return nil, err
@@ -64,7 +65,7 @@ func GetFiles(hash string, prefix string) (map[string]pkg.FileNode, error) {
 
 		// Recursively get children if it's a tree (directory)
 		if objType == "tree" {
-			children, err := GetFiles(hashStr[:2]+"/"+hashStr[2:], fullPath+"/")
+			children, err := GetFiles(hashStr[:2]+"/"+hashStr[2:], fullPath+"/", username)
 			if err != nil {
 				return nil, err
 			}
@@ -76,10 +77,11 @@ func GetFiles(hash string, prefix string) (map[string]pkg.FileNode, error) {
 
 	return files, nil
 }
-func loadObjectFromHash(fullHash string) ([]byte, string, error) {
+func loadObjectFromHash(fullHash string, username string) ([]byte, string, error) {
+	workspaceDir := filepath.Join("workspaces", username)
 	dir := fullHash[:2]
 	file := fullHash[2:]
-	path := ".kit/objects/" + dir + "/" + file
+	path := workspaceDir + "/.kit/objects/" + dir + "/" + file
 
 	content, err := os.ReadFile(path)
 	if err != nil {

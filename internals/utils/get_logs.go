@@ -11,8 +11,10 @@ import (
 	"time"
 )
 
-func GetLogs(commitHash string) (pkg.CommitObject, error) {
-	objPath := filepath.Join(".kit", "objects", commitHash[:2], commitHash[2:])
+func GetLogs(commitHash, username string) (pkg.CommitObject, error) {
+	workspaceDir := filepath.Join("workspaces", username)
+
+	objPath := filepath.Join(workspaceDir+"/.kit", "objects", commitHash[:2], commitHash[2:])
 	objContent, err := os.ReadFile(objPath)
 	if err != nil {
 		return pkg.CommitObject{}, fmt.Errorf("failed to read commit object: %w", err)

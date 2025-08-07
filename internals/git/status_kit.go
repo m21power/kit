@@ -11,16 +11,16 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
-func StatusKit(hash string, fullPath string, visited map[string]bool) (map[string]pkg.IndexEntry, error) {
+func StatusKit(hash string, fullPath, username string, visited map[string]bool) (map[string]pkg.IndexEntry, error) {
+	workspaceDir := filepath.Join("workspaces", username)
 	if visited[hash] {
 		return nil, nil // Already processed
 	}
 	visited[hash] = true
 	var result = make(map[string]pkg.IndexEntry)
-	path := ".kit/objects/" + hash[:2]
+	path := workspaceDir + "/.kit/objects/" + hash[:2]
 	path = filepath.Join(path, hash[2:])
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, fmt.Errorf("directory does not exist: %s", path)
@@ -60,7 +60,7 @@ func StatusKit(hash string, fullPath string, visited map[string]bool) (map[strin
 				Path: fullPath + "/" + entry.Name,
 			}
 		} else if entry.Type == "tree" {
-			subEntries, err := StatusKit(entry.Hash, fullPath+"/"+entry.Name, visited)
+			subEntries, err := StatusKit(entry.Hash, fullPath+"/"+entry.Name, username, visited)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get sub entries: %w", err)
 			}
@@ -127,79 +127,76 @@ func StripHeader(data []byte) ([]byte, error) {
 	return data[nullIndex+1:], nil
 }
 
-func IsChanged(oldTree map[string]pkg.IndexEntry, root string) (map[string]pkg.Status, error) {
+func IsChanged(oldTree map[string]pkg.IndexEntry, root string, username string) (map[string]pkg.Status, error) {
+
 	changed := make(map[string]pkg.Status)
-	staged, err := utils.GetIndexEntry()
+
+	normalizedTree, err := utils.GetNormalizedTree(oldTree, username)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get index entry: %w", err)
+		return nil, fmt.Errorf("failed to get normalized tree: %w", err)
 	}
-	err = filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if strings.HasSuffix(p, "main.go") {
-			return nil
-		}
-		// Skip .kit directory entirely
-		if info.IsDir() && filepath.Base(p) == ".kit" {
-			return filepath.SkipDir
-		}
+	stagedMap, err := utils.GetStagedMap(username)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get staged files: %w", err)
+	}
+	currentTree, err := utils.GetCurrentTree(username)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current tree: %w", err)
+	}
+	// 1- we have normalizedTree which is the commit tree
+	// 2- we have stagedMap which is the staged entries
+	// 3- we have currentTree which is the current working directory state
+	// 4- we need to compare these three to determine the status of each file
+	for path, entry := range currentTree {
+		stagedEntry, inStaged := stagedMap[path]
+		_, inCommit := normalizedTree[path]
 
-		// Skip non-files (just in case)
-		if info.IsDir() {
-			return nil
-		}
-
-		// Compute blob hash of file
-		hash, err := HashBlob(p)
-		if err != nil {
-			return err
-		}
-
-		// Get path relative to root
-		relPath, err := filepath.Rel(root, p)
-		if err != nil {
-			return err
-		}
-
-		entry, exists := oldTree["/"+relPath]
-		if !exists {
-			changed[relPath] = pkg.Status{
+		switch {
+		case !inStaged && !inCommit:
+			// New file, not staged
+			changed[path] = pkg.Status{
 				Staged:  false,
 				Message: "created",
-				Hash:    hash,
+				Hash:    entry.Hash,
 			}
-		}
-		if exists && entry.Hash != hash {
-			changed[relPath] = pkg.Status{
-				Staged:  false,
+
+		case inStaged && stagedEntry.Hash != entry.Hash:
+			// Modified after staging
+			changed[path] = pkg.Status{
+				Staged:  true,
 				Message: "modified",
-				Hash:    hash,
+				Hash:    entry.Hash,
+			}
+
+		case inStaged && stagedEntry.Hash == entry.Hash && !inCommit:
+			// New file staged but not committed yet
+			changed[path] = pkg.Status{
+				Staged:  true,
+				Message: "staged",
+				Hash:    entry.Hash,
 			}
 		}
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
 	}
 
-	for _, entry := range staged {
-		change, exists := changed[entry.Path]
-		if exists {
-			if change.Hash == entry.Hash {
-				changed[entry.Path] = pkg.Status{
+	// Check for deleted files
+	for path, commitEntry := range normalizedTree {
+		if _, inCurrent := currentTree[path]; !inCurrent {
+			if stagedEntry, inStaged := stagedMap[path]; inStaged {
+				// File was staged (maybe for deletion)
+				changed[path] = pkg.Status{
 					Staged:  true,
-					Message: change.Message,
-					Hash:    entry.Hash,
+					Message: "deleted (staged)",
+					Hash:    stagedEntry.Hash,
+				}
+			} else {
+				// File deleted in working directory but not staged
+				changed[path] = pkg.Status{
+					Staged:  false,
+					Message: "deleted",
+					Hash:    commitEntry.Hash,
 				}
 			}
-
-		} else {
-
 		}
 	}
-
 	return changed, nil
 }
