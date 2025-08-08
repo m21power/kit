@@ -14,6 +14,9 @@ import (
 )
 
 func StatusKit(hash string, fullPath, username string, visited map[string]bool) (map[string]pkg.IndexEntry, error) {
+	if hash == "" {
+		return nil, nil
+	}
 	workspaceDir := filepath.Join("workspaces", username)
 	if visited[hash] {
 		return nil, nil // Already processed
