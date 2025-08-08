@@ -75,3 +75,13 @@ type BranchRequest struct {
 	Username string `json:"username"`
 	Branch   string `json:"branch"`
 }
+
+type RestoreResponse struct {
+	Restored   map[string]bool `json:"restored"`
+	FileSystem FileSystemItem  `json:"fileSystem"`
+}
+
+type ResetRequest struct {
+	Username   string `json:"username"`
+	CommitHash string `json:"hash"`
+}

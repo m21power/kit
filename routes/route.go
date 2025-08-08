@@ -32,6 +32,7 @@ func (r *Router) RegisterRoute() {
 	path.HandleFunc("/branches", handler.ListBranches).Methods("GET")
 	path.HandleFunc("/dir", handler.GetAllDir).Methods("GET")
 	path.HandleFunc("/check", handler.CheckDir).Methods("GET")
+	path.HandleFunc("/reset", handler.ResetHandler).Methods("POST")
 
 }
 

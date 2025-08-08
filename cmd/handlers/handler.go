@@ -320,3 +320,21 @@ func CheckDir(w http.ResponseWriter, r *http.Request) {
 	}
 	pkg.WriteJSON(w, http.StatusBadRequest, map[string]string{"message": "Directory exists"})
 }
+
+func ResetHandler(w http.ResponseWriter, r *http.Request) {
+	var req pkg.ResetRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		pkg.WriteError(w, err, http.StatusBadRequest)
+		return
+	}
+	if req.Username == "" || req.CommitHash == "" {
+		pkg.WriteError(w, fmt.Errorf("username and commit hash are required"), http.StatusBadRequest)
+		return
+	}
+	result, err := git.ResetKit(req.Username, req.CommitHash)
+	if err != nil {
+		pkg.WriteError(w, fmt.Errorf("reset failed: %w", err), http.StatusInternalServerError)
+		return
+	}
+	pkg.WriteJSON(w, http.StatusOK, map[string]pkg.FileSystemItem{"data": result})
+}

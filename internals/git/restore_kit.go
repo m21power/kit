@@ -6,7 +6,7 @@ import (
 	"kit/pkg"
 )
 
-func KitRestore(username string, paths []string, oldTree map[string]pkg.IndexEntry) (map[string]bool, error) {
+func KitRestore(username string, paths []string, oldTree map[string]pkg.IndexEntry) (*pkg.RestoreResponse, error) {
 	normalizedTree, err := utils.GetNormalizedTree(oldTree, username)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get normalized tree: %w", err)
@@ -64,6 +64,15 @@ func KitRestore(username string, paths []string, oldTree map[string]pkg.IndexEnt
 		}
 
 	}
-	return result, nil
+	workspaceDir := "workspaces/" + username
+	rootPath := workspaceDir
+	structure, err := utils.BuildFileTree(rootPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build file structure: %w", err)
+	}
+	return &pkg.RestoreResponse{
+		Restored:   result,
+		FileSystem: structure,
+	}, nil
 
 }
